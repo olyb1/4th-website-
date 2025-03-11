@@ -46,40 +46,38 @@
         data[rowIndex][colIndex] = value;
         updateLocalStorage();
         renderTable();
+        sendToAppInventor(`Updated row ${rowIndex}, col ${colIndex}: ${value}`);
     }
 
     function deleteRow(rowIndex) {
         data.splice(rowIndex, 1);
         updateLocalStorage();
         renderTable();
-        sendToAppInventor("Deleted row " + rowIndex);
+        sendToAppInventor(`Deleted row ${rowIndex}`);
     }
 
     function addRow() {
-        const file = document.getElementById('imagePicker').files[0];
-        let imageUrl = '';
+        const newCol1 = document.getElementById('newCol1').value;
+        const newCol2 = document.getElementById('newCol2').value;
+        const fileInput = document.getElementById('imagePicker');
+        const file = fileInput.files[0];
+
         if (file) {
             const reader = new FileReader();
-            reader.onload = (e) => {
-                imageUrl = e.target.result;
-                addNewRow(imageUrl);
+            reader.onload = function (e) {
+                addNewRow(newCol1, newCol2, e.target.result);
             };
             reader.readAsDataURL(file);
         } else {
-            addNewRow(imageUrl);
+            addNewRow(newCol1, newCol2, '');
         }
     }
 
-    function addNewRow(imageUrl) {
-        const newRow = [
-            document.getElementById('newCol1').value,
-            document.getElementById('newCol2').value,
-            imageUrl
-        ];
-        data.push(newRow);
+    function addNewRow(col1, col2, imageUrl) {
+        data.push([col1, col2, imageUrl]);
         document.getElementById('newCol1').value = '';
         document.getElementById('newCol2').value = '';
-        document.getElementById('imagePicker').value = ''; // Clear file input
+        document.getElementById('imagePicker').value = '';
         updateLocalStorage();
         renderTable();
         sendToAppInventor("Added new row");
@@ -88,7 +86,6 @@
     function renderTable() {
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = '';
-
         const searchTerm = document.getElementById('searchInput').value.toLowerCase();
         const filteredData = data.filter(row => row.some(cell => cell && cell.toLowerCase().includes(searchTerm)));
 
@@ -98,17 +95,16 @@
                 const cellElement = newRow.insertCell();
                 if (colIndex === 2) { // Image column
                     const img = document.createElement('img');
-                    img.src = cell;
+                    img.src = cell || "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABMElEQVQ4T6WTPUoDQRSGn1VuIigI5RIUgllYnGTiAiGhpIfAELnL+FHRB8ASqZghY2N8AEc3NboUQkZGSU3Vekzi3crKeXDqenTm5tdgP9t3dNA9U8y3GdgMNoF4mRbgz6szgn2Dd8B19jXsAjGoqHbCvoC27bhZgBHrDRvuJkEIt7jOed4KcXmoQfj5Cpdi3y6cVSz1G7Yg5esAmylEGFDYPCryzCWApMhnDLByVJwdMvZh9pNHnR06FYB0L1tH5QzUbeQwYZsNjoLzLA+uGmzxF/4UPehq2kmpru0OM4TTwx2O7wJnkcsLZRiJuArOw/cDPEfdoHDN/Uysia/mbNfw7K/Bw5AxzTNSQAE9rIFpGH2XED09/QF6DszR9qgrBcrNNw4HcAuEr2ZGAU8QmAAAAAElFTkSuQmCC";
                     img.alt = 'Uploaded Image';
                     cellElement.appendChild(img);
                 } else {
                     const input = document.createElement('input');
                     input.type = 'text';
                     input.value = cell;
-                    input.addEventListener('change', () => {
+                    input.onchange = function () {
                         updateData(rowIndex, colIndex, input.value);
-                        sendToAppInventor(`Updated row ${rowIndex}, col ${colIndex}: ${input.value}`);
-                    });
+                    };
                     cellElement.appendChild(input);
                 }
             });
@@ -116,7 +112,7 @@
             const actionsCell = newRow.insertCell();
             const deleteButton = document.createElement('button');
             deleteButton.textContent = 'Delete';
-            deleteButton.onclick = () => deleteRow(rowIndex);
+            deleteButton.onclick = function () { deleteRow(rowIndex); };
             actionsCell.appendChild(deleteButton);
         });
     }
@@ -130,7 +126,7 @@
     }
 
     function sendToAppInventor(message) {
-        if (window.AppInventor) {
+        if (typeof window.AppInventor !== "undefined" && window.AppInventor.setWebViewString) {
             window.AppInventor.setWebViewString(message);
         }
     }
@@ -140,4 +136,3 @@
 
 </body>
 </html>
-
