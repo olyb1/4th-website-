@@ -9,7 +9,7 @@
         th { text-align: left; }
         input[type="text"] { font-size: 16px; padding: 8px; width: 100%; box-sizing: border-box; }
         button { font-size: 16px; padding: 8px 12px; margin: 5px; }
-        input[type="file"] { /* Removed display: none; */ }
+        input[type="file"] { display: none; }
         img { max-width: 100px; max-height: 100px; }
     </style>
 </head>
@@ -32,6 +32,7 @@
 <input type="text" id="newCol1" placeholder="Assessment Name">
 <input type="text" id="newCol2" placeholder="Score">
 <input type="file" id="imagePicker" accept="image/*">
+<button id="chooseImageBtn">Choose Image</button>
 <button id="addRowBtn">Add Row</button>
 
 <script>
@@ -86,7 +87,7 @@
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = '';
         const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-
+        
         const filteredData = data
             .map((row, index) => ({ row, index })) // Store original index
             .filter(({ row }) => row.some(cell => cell && cell.toLowerCase().includes(searchTerm)));
@@ -125,7 +126,11 @@
         }
     }
 
-    // Event listeners
+    // Event listeners to ensure buttons work in WebViewer
+    document.getElementById('chooseImageBtn').addEventListener('click', function() {
+        document.getElementById('imagePicker').click();
+    });
+
     document.getElementById('addRowBtn').addEventListener('click', addRow);
     document.getElementById('searchInput').addEventListener('keyup', renderTable);
 
