@@ -9,8 +9,8 @@ th, td { border: 1px solid black; padding: 12px; }
 th { text-align: left; }
 input[type="text"] { font-size: 16px; padding: 8px; width: 100%; box-sizing: border-box; }
 button { font-size: 16px; padding: 8px 12px; }
-input[type="file"] { display: none; } /* Hide file input by default */
-img { max-width: 100px; max-height: 100px; } /* Limit image size */
+input[type="file"] { display: none; }
+img { max-width: 100px; max-height: 100px; } 
 </style>
 </head>
 <body>
@@ -31,14 +31,15 @@ img { max-width: 100px; max-height: 100px; } /* Limit image size */
 
 <input type="text" id="newCol1" placeholder="Column 1">
 <input type="text" id="newCol2" placeholder="Column 2">
-<input type="file" id="imagePicker" accept="image/*">
+<input type="file" id="imagePicker" accept="image/*" onchange="handleImageUpload(event)">
 <button onclick="showImagePicker()">Choose Image</button>
 <button onclick="addRow()">Add Row</button>
 
 <script>
-  const pageID = window.location.pathname; // Unique key per GitHub Page
+  const pageID = window.location.pathname;
   const storageKey = `tableData_${pageID}`;
   let data = JSON.parse(localStorage.getItem(storageKey)) || [];
+  let tempImageUrl = ''; // Temporary storage for selected image
 
   function updateLocalStorage() {
     localStorage.setItem(storageKey, JSON.stringify(data));
@@ -57,38 +58,28 @@ img { max-width: 100px; max-height: 100px; } /* Limit image size */
   }
 
   function addRow() {
-    const file = document.getElementById('imagePicker').files[0];
-    let imageUrl = '';
+    const newRow = [
+      document.getElementById('newCol1').value,
+      document.getElementById('newCol2').value,
+      tempImageUrl
+    ];
 
+    data.push(newRow);
+    document.getElementById('newCol1').value = '';
+    document.getElementById('newCol2').value = '';
+    tempImageUrl = ''; // Clear temporary image
+    updateLocalStorage();
+    renderTable();
+  }
+
+  function handleImageUpload(event) {
+    const file = event.target.files[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        imageUrl = e.target.result;
-        const newRow = [
-          document.getElementById('newCol1').value,
-          document.getElementById('newCol2').value,
-          imageUrl,
-        ];
-        data.push(newRow);
-        document.getElementById('newCol1').value = '';
-        document.getElementById('newCol2').value = '';
-        document.getElementById('imagePicker').value = ''; // Clear file input
-        updateLocalStorage();
-        renderTable();
+        tempImageUrl = e.target.result;
       };
       reader.readAsDataURL(file);
-    } else {
-      const newRow = [
-        document.getElementById('newCol1').value,
-        document.getElementById('newCol2').value,
-        imageUrl,
-      ];
-      data.push(newRow);
-      document.getElementById('newCol1').value = '';
-      document.getElementById('newCol2').value = '';
-      document.getElementById('imagePicker').value = ''; // Clear file input
-      updateLocalStorage();
-      renderTable();
     }
   }
 
@@ -97,9 +88,7 @@ img { max-width: 100px; max-height: 100px; } /* Limit image size */
     tbody.innerHTML = '';
 
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    const filteredData = data.filter(row => {
-      return row.some(cell => cell && cell.toLowerCase().includes(searchTerm));
-    });
+    const filteredData = data.filter(row => row.some(cell => cell && cell.toLowerCase().includes(searchTerm)));
 
     filteredData.forEach((row, rowIndex) => {
       const newRow = tbody.insertRow();
@@ -107,18 +96,27 @@ img { max-width: 100px; max-height: 100px; } /* Limit image size */
         const cellElement = newRow.insertCell();
         if (colIndex === 2) { // Image column
           const img = document.createElement('img');
-          img.src = cell;
+          img.src = cell || 'https://via.placeholder.com/100';
           img.alt = 'Uploaded Image';
           cellElement.appendChild(img);
+
           const chooseImageButton = document.createElement('button');
           chooseImageButton.textContent = 'Choose Image';
           chooseImageButton.onclick = () => {
-            document.getElementById('imagePicker').click();
-            document.getElementById('imagePicker').onchange = () => {
-              const file = document.getElementById('imagePicker').files[0];
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = 'image/*';
+            fileInput.style.display = 'none';
+            document.body.appendChild(fileInput);
+            fileInput.click();
+            fileInput.onchange = () => {
+              const file = fileInput.files[0];
               const reader = new FileReader();
-              reader.onload = (e) => { updateData(rowIndex, colIndex, e.target.result); };
+              reader.onload = (e) => {
+                updateData(rowIndex, colIndex, e.target.result);
+              };
               reader.readAsDataURL(file);
+              document.body.removeChild(fileInput);
             };
           };
           cellElement.appendChild(chooseImageButton);
