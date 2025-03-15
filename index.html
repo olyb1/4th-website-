@@ -8,134 +8,134 @@
         th, td { border: 1px solid black; padding: 12px; }
         th { text-align: left; }
         input[type="text"] { font-size: 16px; padding: 8px; width: 100%; box-sizing: border-box; }
-        button { font-size: 16px; padding: 8px 12px; margin: 5px; }
-        input[type="file"] { display: none; }
-        img { max-width: 100px; max-height: 100px; }
+        button { font-size: 16px; padding: 8px 12px; }
+        input[type="file"] { display: none; } /* Hide file input by default */
+        img { max-width: 100px; max-height: 100px; } /* Limit image size */
     </style>
 </head>
 <body>
 
-<input type="text" id="searchInput" placeholder="Search...">
+    <input type="text" id="searchInput" placeholder="Search..." onkeyup="renderTable()">
 
-<table>
-    <thead>
-        <tr>
-            <th>Assessment Name</th>
-            <th>Score</th>
-            <th>Image</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody id="tableBody"></tbody>
-</table>
+    <table>
+        <thead>
+            <tr>
+                <th>Assessment Name</th>
+                <th>Score</th>
+                <th>Image</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
 
-<input type="text" id="newCol1" placeholder="Assessment Name">
-<input type="text" id="newCol2" placeholder="Score">
-<input type="file" id="imagePicker" accept="image/*">
-<button id="chooseImageBtn">Choose Image</button>
-<button id="addRowBtn">Add Row</button>
+    <input type="text" id="newCol1" placeholder="Assessment Name">
+    <input type="text" id="newCol2" placeholder="Score">
+    <input type="file" id="imagePicker" accept="image/*">
+    <button onclick="showImagePicker()">Choose Image</button>
+    <button onclick="addRow()">Add Row</button>
 
-<script>
-    let data = JSON.parse(localStorage.getItem('tableData')) || [];
+    <script>
+        let data = JSON.parse(localStorage.getItem('tableData')) || [];
 
-    function updateLocalStorage() {
-        localStorage.setItem('tableData', JSON.stringify(data));
-    }
+        function updateLocalStorage() {
+            localStorage.setItem('tableData', JSON.stringify(data));
+        }
 
-    function addRow() {
-        const newCol1 = document.getElementById('newCol1').value;
-        const newCol2 = document.getElementById('newCol2').value;
-        const fileInput = document.getElementById('imagePicker');
-        const file = fileInput.files[0];
+        function updateData(rowIndex, colIndex, value) {
+            data[rowIndex][colIndex] = value;
+            updateLocalStorage();
+            renderTable();
+        }
 
-        if (file) {
+        function deleteRow(rowIndex) {
+            data.splice(rowIndex, 1);
+            updateLocalStorage();
+            renderTable();
+        }
+
+        function addRow() {
+            const assessmentName = document.getElementById('newCol1').value.trim();
+            const score = document.getElementById('newCol2').value.trim();
+            const fileInput = document.getElementById('imagePicker');
+            const file = fileInput.files[0];
+
+            if (!assessmentName || !score || !file) {
+                alert("Please enter Assessment Name, Score, and choose an Image before adding a row.");
+                return;
+            }
+
             const reader = new FileReader();
             reader.onload = function (e) {
-                addNewRow(newCol1, newCol2, e.target.result);
+                const imageUrl = e.target.result;
+
+                data.push([assessmentName, score, imageUrl]); // Add row to array
+                updateLocalStorage();
+                renderTable(); // Refresh table after adding row
+
+                // Clear input fields
+                document.getElementById('newCol1').value = '';
+                document.getElementById('newCol2').value = '';
+                fileInput.value = ''; 
             };
+
             reader.readAsDataURL(file);
-        } else {
-            addNewRow(newCol1, newCol2, '');
         }
-    }
 
-    function addNewRow(col1, col2, imageUrl) {
-        data.push([col1, col2, imageUrl]);
-        document.getElementById('newCol1').value = '';
-        document.getElementById('newCol2').value = '';
-        document.getElementById('imagePicker').value = '';
-        updateLocalStorage();
-        renderTable();
-        sendToAppInventor("Added new row");
-    }
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
 
-    function updateData(originalIndex, colIndex, value) {
-        data[originalIndex][colIndex] = value;
-        updateLocalStorage();
-        renderTable();
-        sendToAppInventor(`Updated row ${originalIndex}, col ${colIndex}: ${value}`);
-    }
-
-    function deleteRow(originalIndex) {
-        data.splice(originalIndex, 1);
-        updateLocalStorage();
-        renderTable();
-        sendToAppInventor(`Deleted row ${originalIndex}`);
-    }
-
-    function renderTable() {
-        const tbody = document.getElementById('tableBody');
-        tbody.innerHTML = '';
-        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-        
-        const filteredData = data
-            .map((row, index) => ({ row, index })) // Store original index
-            .filter(({ row }) => row.some(cell => cell && cell.toLowerCase().includes(searchTerm)));
-
-        filteredData.forEach(({ row, index }) => {
-            const newRow = tbody.insertRow();
-            row.forEach((cell, colIndex) => {
-                const cellElement = newRow.insertCell();
-                if (colIndex === 2) { // Image column
-                    const img = document.createElement('img');
-                    img.src = cell || "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABMElEQVQ4T6WTPUoDQRSGn1VuIigI5RIUgllYnGTiAiGhpIfAELnL+FHRB8ASqZghY2N8AEc3NboUQkZGSU3Vekzi3crKeXDqenTm5tdgP9t3dNA9U8y3GdgMNoF4mRbgz6szgn2Dd8B19jXsAjGoqHbCvoC27bhZgBHrDRvuJkEIt7jOed4KcXmoQfj5Cpdi3y6cVSz1G7Yg5esAmylEGFDYPCryzCWApMhnDLByVJwdMvZh9pNHnR06FYB0L1tH5QzUbeQwYZsNjoLzLA+uGmzxF/4UPehq2kmpru0OM4TTwx2O7wJnkcsLZRiJuArOw/cDPEfdoHDN/Uysia/mbNfw7K/Bw5AxzTNSQAE9rIFpGH2XED09/QF6DszR9qgrBcrNNw4HcAuEr2ZGAU8QmAAAAAElFTkSuQmCC";
-                    img.alt = 'Uploaded Image';
-                    cellElement.appendChild(img);
-                } else {
-                    const input = document.createElement('input');
-                    input.type = 'text';
-                    input.value = cell;
-                    input.onchange = function () {
-                        updateData(index, colIndex, input.value);
-                    };
-                    cellElement.appendChild(input);
-                }
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const filteredData = data.filter(row => {
+                return row.some(cell => cell && cell.toString().toLowerCase().includes(searchTerm));
             });
 
-            const actionsCell = newRow.insertCell();
-            const deleteButton = document.createElement('button');
-            deleteButton.textContent = 'Delete';
-            deleteButton.onclick = function () { deleteRow(index); };
-            actionsCell.appendChild(deleteButton);
-        });
-    }
+            filteredData.forEach((row, rowIndex) => {
+                const newRow = tbody.insertRow();
+                row.forEach((cell, colIndex) => {
+                    const cellElement = newRow.insertCell();
+                    if (colIndex === 2) { // Image column
+                        const img = document.createElement('img');
+                        img.src = cell;
+                        img.alt = 'Uploaded Image';
+                        cellElement.appendChild(img);
 
-    function sendToAppInventor(message) {
-        if (window.AppInventor && window.AppInventor.setWebViewString) {
-            window.AppInventor.setWebViewString(message);
+                        const chooseImageButton = document.createElement('button');
+                        chooseImageButton.textContent = 'Choose Image';
+                        chooseImageButton.onclick = () => {
+                            document.getElementById('imagePicker').click();
+                            document.getElementById('imagePicker').onchange = () => {
+                                const file = document.getElementById('imagePicker').files[0];
+                                const reader = new FileReader();
+                                reader.onload = (e) => { updateData(rowIndex, colIndex, e.target.result); };
+                                reader.readAsDataURL(file);
+                            };
+                        };
+                        cellElement.appendChild(chooseImageButton);
+                    } else {
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.value = cell;
+                        input.addEventListener('change', () => updateData(rowIndex, colIndex, input.value));
+                        cellElement.appendChild(input);
+                    }
+                });
+
+                const actionsCell = newRow.insertCell();
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.onclick = () => deleteRow(rowIndex);
+                actionsCell.appendChild(deleteButton);
+            });
         }
-    }
 
-    // Event listeners to ensure buttons work in WebViewer
-    document.getElementById('chooseImageBtn').addEventListener('click', function() {
-        document.getElementById('imagePicker').click();
-    });
+        function showImagePicker() {
+            document.getElementById('imagePicker').click();
+        }
 
-    document.getElementById('addRowBtn').addEventListener('click', addRow);
-    document.getElementById('searchInput').addEventListener('keyup', renderTable);
-
-    renderTable();
-</script>
+        renderTable();
+    </script>
 
 </body>
 </html>
